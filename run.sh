@@ -12,11 +12,16 @@ cd "$PROJECT_ROOT"
 source venv/bin/activate
 
 # Parse arguments
+ENABLE_GFPGAN=true
 ENABLE_ESRGAN=true
 INPUT_FILE=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --skip-gfpgan|--no-gfpgan)
+            ENABLE_GFPGAN=false
+            shift
+            ;;
         --skip-esrgan|--no-esrgan)
             ENABLE_ESRGAN=false
             shift
@@ -33,9 +38,10 @@ INPUT_FILE=${INPUT_FILE:-"input/test.jpg"}
 
 if [ ! -f "$INPUT_FILE" ]; then
     echo "Error: Input file '$INPUT_FILE' not found"
-    echo "Usage: ./run.sh [--skip-esrgan] <input_image>"
+    echo "Usage: ./run.sh [--skip-gfpgan] [--skip-esrgan] <input_image>"
     echo ""
     echo "Options:"
+    echo "  --skip-gfpgan, --no-gfpgan  Skip GFPGAN face restoration step"
     echo "  --skip-esrgan, --no-esrgan  Skip Real-ESRGAN super-resolution step"
     exit 1
 fi
@@ -48,43 +54,59 @@ echo "===================================="
 echo "Image Enhancement Pipeline"
 echo "===================================="
 echo "Input: $INPUT_FILE"
+echo "GFPGAN: $([ "$ENABLE_GFPGAN" = true ] && echo "Enabled" || echo "Disabled")"
 echo "Real-ESRGAN: $([ "$ENABLE_ESRGAN" = true ] && echo "Enabled" || echo "Disabled")"
 echo ""
 
-# Step 1: GFPGAN - Face Restoration
-TOTAL_STEPS=$([ "$ENABLE_ESRGAN" = true ] && echo "2" || echo "1")
-echo "Step 1/${TOTAL_STEPS}: Running GFPGAN for face restoration..."
-python GFPGAN/inference_gfpgan.py \
-  -i "$INPUT_FILE" \
-  -o tmp \
-  -v 1.4 \
-  -s 1
+# Determine total steps for progress messages
+TOTAL_STEPS=0
+[[ "$ENABLE_GFPGAN" = true ]] && TOTAL_STEPS=$((TOTAL_STEPS + 1))
+[[ "$ENABLE_ESRGAN" = true ]] && TOTAL_STEPS=$((TOTAL_STEPS + 1))
+if [ "$TOTAL_STEPS" -eq 0 ]; then
+    TOTAL_STEPS=1
+fi
+CURRENT_STEP=0
+SOURCE_IMAGE="$INPUT_FILE"
 
-# Check if face restoration succeeded
-if [ -d "tmp/restored_imgs" ]; then
-    # GFPGAN outputs with original extension
-    if [ -f "tmp/restored_imgs/${BASENAME}.png" ]; then
-        GFPGAN_OUTPUT="tmp/restored_imgs/${BASENAME}.png"
-    elif [ -f "tmp/restored_imgs/${BASENAME}.jpg" ]; then
-        GFPGAN_OUTPUT="tmp/restored_imgs/${BASENAME}.jpg"
+# Step 1: GFPGAN - Face Restoration (Optional)
+if [ "$ENABLE_GFPGAN" = true ]; then
+    CURRENT_STEP=$((CURRENT_STEP + 1))
+    echo "Step ${CURRENT_STEP}/${TOTAL_STEPS}: Running GFPGAN for face restoration..."
+    python GFPGAN/inference_gfpgan.py \
+      -i "$INPUT_FILE" \
+      -o tmp \
+      -v 1.4 \
+      -s 1
+
+    # Check if face restoration succeeded
+    if [ -d "tmp/restored_imgs" ]; then
+        # GFPGAN outputs with original extension
+        if [ -f "tmp/restored_imgs/${BASENAME}.png" ]; then
+            SOURCE_IMAGE="tmp/restored_imgs/${BASENAME}.png"
+        elif [ -f "tmp/restored_imgs/${BASENAME}.jpg" ]; then
+            SOURCE_IMAGE="tmp/restored_imgs/${BASENAME}.jpg"
+        else
+            # Fallback to first file in directory
+            SOURCE_IMAGE=$(ls tmp/restored_imgs/ | head -1)
+            SOURCE_IMAGE="tmp/restored_imgs/$SOURCE_IMAGE"
+        fi
+        echo "✓ Face restoration completed"
     else
-        # Fallback to first file in directory
-        GFPGAN_OUTPUT=$(ls tmp/restored_imgs/ | head -1)
-        GFPGAN_OUTPUT="tmp/restored_imgs/$GFPGAN_OUTPUT"
+        echo "⚠ No faces detected, using original image"
+        SOURCE_IMAGE="$INPUT_FILE"
     fi
-    echo "✓ Face restoration completed"
 else
-    echo "⚠ No faces detected, using original image"
-    GFPGAN_OUTPUT="$INPUT_FILE"
+    echo "GFPGAN skipped (use without --skip-gfpgan to enable)"
 fi
 
 # Step 2: Real-ESRGAN - Full Image Super-Resolution (Optional)
 if [ "$ENABLE_ESRGAN" = true ]; then
+    CURRENT_STEP=$((CURRENT_STEP + 1))
     echo ""
-    echo "Step 2/2: Running Real-ESRGAN for image enhancement (GPU accelerated)..."
+    echo "Step ${CURRENT_STEP}/${TOTAL_STEPS}: Running Real-ESRGAN for image enhancement (GPU accelerated)..."
     python Real-ESRGAN/inference_realesrgan.py \
       -n RealESRGAN_x4plus \
-      -i "$GFPGAN_OUTPUT" \
+      -i "$SOURCE_IMAGE" \
       -o "$PROJECT_ROOT/output" \
       -s 2 \
       -g 0 \
@@ -96,7 +118,7 @@ else
     echo "Real-ESRGAN skipped (use without --skip-esrgan to enable)"
     # Copy GFPGAN output to final output directory
     mkdir -p "$PROJECT_ROOT/output"
-    cp "$GFPGAN_OUTPUT" "$PROJECT_ROOT/output/${BASENAME}_restored.png"
+    cp "$SOURCE_IMAGE" "$PROJECT_ROOT/output/${BASENAME}_restored.png"
     FINAL_OUTPUT="output/${BASENAME}_restored.png"
 fi
 
