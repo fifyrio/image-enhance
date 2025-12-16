@@ -1,0 +1,18 @@
+====================================
+Image Enhancement Pipeline
+====================================
+Input: input/test.jpg
+
+Step 1/2: Running GFPGAN for face restoration...
+/Users/wuwei/Documents/AIApps/image-enhance/GFPGAN/inference_gfpgan.py:63: UserWarning: The unoptimized RealESRGAN is slow on CPU. We do not use it. If you really want to use it, please modify the corresponding codes.
+  warnings.warn('The unoptimized RealESRGAN is slow on CPU. We do not use it. '
+/Users/wuwei/Documents/AIApps/image-enhance/venv/lib/python3.12/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/Users/wuwei/Documents/AIApps/image-enhance/venv/lib/python3.12/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=None`.
+  warnings.warn(msg)
+Processing test.jpg ...
+Results are in the [tmp] folder.
+✓ Face restoration completed
+
+Step 2/2: Running Real-ESRGAN for image enhancement (GPU accelerated)...
+./run.sh: line 68: 59657 Killed: 9               python Real-ESRGAN/inference_realesrgan.py -n RealESRGAN_x4plus -i "$GFPGAN_OUTPUT" -o "$PROJECT_ROOT/output" -s 2 -g 0 --suffix "_enhanced"

@@ -1,0 +1,39 @@
+.DS_Store
+.git2/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.dylib
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+
+# Runtime artifacts
+tmp/
+output/
+
+# Local inputs (keep sample test image)
+input/*
+!input/test.jpg
+
+# Third-party model weights and checkpoints
+*.pth
+*.pt
+*.onnx
+GFPGAN/gfpgan/weights/
+GFPGAN/weights/
+GFPGAN/results/
+Real-ESRGAN/weights/
+Real-ESRGAN/results/
+
+# Logs
+*.log
+!gpu_test.log
+
+# System folders
+.claude/
