@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(git clone:*)",
+      "Bash(python setup.py develop:*)",
+      "Bash(python:*)",
+      "Bash(chmod:*)",
+      "Bash(./run.sh:*)",
+      "Bash(tree:*)",
+      "Bash(./quick_test.sh:*)",
+      "Bash(pkill:*)",
+      "Bash(tee:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(du:*)",
+      "Bash(ls:*)",
+      "Bash(./setup.sh:*)",
+      "Bash(pip show:*)",
+      "Bash(bash -c \"source venv/bin/activate && which python && python --version\")",
+      "Bash(bash -c \"source venv/bin/activate && python -c \"\"import sys; print(sys.version)\"\"\")",
+      "Bash(bash -c:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
